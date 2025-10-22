@@ -1,7 +1,11 @@
-- [x] Add mobile toggle button to navbar in base_mysql.html
-- [x] Wrap table in index_mysql.html with table-responsive
-- [x] Wrap table in my_files_mysql.html with table-responsive
-- [x] Wrap table in stats_mysql.html with table-responsive
-- [ ] Test responsiveness by running app and checking on different screen sizes
-- [x] Replace "MySQL Student Files" with "DocAgram" in templates/base_mysql.html
-- [x] Replace "Public File Gallery" with "Public Files" in templates/index_mysql.html
+# Heroku Deployment TODO
+
+- [x] Update requirements.txt: Add psycopg2-binary, remove pymysql
+- [x] Update flask_mysql_app.py: Change DATABASE_URL to use Postgres URI
+- [x] Create Procfile: Specify web process command
+- [x] Create runtime.txt: Specify Python version
+- [ ] Initialize git repo if not present
+- [ ] Create Heroku app using CLI
+- [ ] Add Postgres add-on to Heroku app
+- [ ] Deploy via git push
+- [ ] Test the deployed app

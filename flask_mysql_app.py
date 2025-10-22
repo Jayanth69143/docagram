@@ -20,7 +20,7 @@ from sqlalchemy import func
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "your_secret_key"
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
-    "DATABASE_URL", "mysql+pymysql://root:root@localhost/docagram"
+    "DATABASE_URL", "postgresql://localhost/docagram"
 )
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
@@ -162,6 +162,20 @@ def download(file_id):
     return send_file(
         io.BytesIO(original_data), as_attachment=True, download_name=original_filename
     )
+
+
+@app.route("/delete/<int:file_id>")
+def delete(file_id):
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+    file = File.query.get_or_404(file_id)
+    if file.uploaded_by != session["user_id"]:
+        flash("You can only delete your own files.")
+        return redirect(url_for("my_files"))
+    db.session.delete(file)
+    db.session.commit()
+    flash("File deleted successfully!")
+    return redirect(url_for("my_files"))
 
 
 @app.route("/preview/<int:file_id>")

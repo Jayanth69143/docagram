@@ -25,7 +25,10 @@
                 <td>{{ file.upload_date.strftime('%Y-%m-%d') }}</td>
                 <td>{{ 'Yes' if file.is_public else 'No' }}</td>
                 <td>{{ file.description }}</td>
-                <td><a href="/download/{{ file.id }}" class="btn btn-sm btn-success">Download</a></td>
+                <td>
+                    <a href="/download/{{ file.id }}" class="btn btn-sm btn-success">Download</a>
+                    <a href="/delete/{{ file.id }}" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this file?')">Delete</a>
+                </td>
             </tr>
             {% endfor %}
         </tbody>

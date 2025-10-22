@@ -1,5 +1,5 @@
 Flask
 Flask-SQLAlchemy
-PyMySQL
+psycopg2-binary
 SQLAlchemy
 Werkzeug

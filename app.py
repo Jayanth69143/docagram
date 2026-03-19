@@ -5,29 +5,56 @@ import secrets
 import hashlib
 import os
 import sys
+import logging
 
 from flask import Flask, request, session, redirect, url_for, render_template, flash, send_file, abort
 from flask_pymongo import PyMongo
 from werkzeug.security import check_password_hash, generate_password_hash
 from PIL import Image
 
+# Configure logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "your_secret_key")
 app.config["MONGO_URI"] = os.getenv("MONGO_URI", "mongodb+srv://Vercel-Admin-atlas-amber-compass:hOVMjEKLebuU3C07@atlas-amber-compass.57nlolp.mongodb.net/?retryWrites=true&w=majority")
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["SESSION_COOKIE_SECURE"] = True
 
-try:
-    mongo = PyMongo(app)
-    # Test connection
-    mongo.db.command('ping')
-    print("✅ MongoDB connected successfully")
-except Exception as e:
-    print(f"❌ MongoDB connection failed: {e}", file=sys.stderr)
-    mongo = None
+mongo = None
+
+@app.before_request
+def connect_mongo():
+    global mongo
+    if mongo is None:
+        try:
+            mongo = PyMongo(app)
+            # Test connection
+            mongo.db.command('ping')
+            logger.info("✅ MongoDB connected successfully")
+        except Exception as e:
+            logger.error(f"❌ MongoDB connection failed: {e}")
+            mongo = None
 
 
 @app.route("/")
 def index():
     return render_template("index_mysql.html")
+
+
+@app.route("/health")
+def health():
+    """Health check endpoint for Vercel monitoring"""
+    try:
+        if mongo:
+            mongo.db.command('ping')
+            return {"status": "healthy", "mongo": "connected"}, 200
+        else:
+            return {"status": "unhealthy", "mongo": "not connected"}, 503
+    except Exception as e:
+        logger.error(f"Health check failed: {e}")
+        return {"status": "unhealthy", "error": str(e)}, 503
 
 
 @app.route("/favicon.ico")
@@ -40,36 +67,53 @@ def favicon():
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        username = request.form.get("username", "").strip()
-        password = request.form.get("password", "")
-        
-        user = mongo.db.users.find_one({"username": username})
-        if not user:
-            flash("Invalid username or password.")
-            return redirect(url_for("login"))
-        
-        # Check if user is banned
-        if user.get("ban_until"):
-            ban_until = user["ban_until"]
-            if isinstance(ban_until, str):
-                ban_until = datetime.fromisoformat(ban_until)
-            if datetime.utcnow() < ban_until:
-                hours_left = (ban_until - datetime.utcnow()).total_seconds() / 3600
-                flash(f"Your account is banned for {hours_left:.1f} more hours.")
+        try:
+            logger.debug(f"Login attempt from {request.remote_addr}")
+            
+            if not mongo:
+                flash("Database connection failed. Please try again later.")
                 return redirect(url_for("login"))
-            else:
-                # Unban user if ban expired
-                mongo.db.users.update_one({"_id": user["_id"]}, {"$set": {"ban_until": None}})
-        
-        if not check_password_hash(user.get("password_hash", ""), password):
-            flash("Invalid username or password.")
+            
+            username = request.form.get("username", "").strip()
+            password = request.form.get("password", "")
+            
+            logger.debug(f"Login attempt for user: {username}")
+            
+            user = mongo.db.users.find_one({"username": username})
+            if not user:
+                logger.warning(f"Login failed - user not found: {username}")
+                flash("Invalid username or password.")
+                return redirect(url_for("login"))
+            
+            # Check if user is banned
+            if user.get("ban_until"):
+                ban_until = user["ban_until"]
+                if isinstance(ban_until, str):
+                    ban_until = datetime.fromisoformat(ban_until)
+                if datetime.utcnow() < ban_until:
+                    hours_left = (ban_until - datetime.utcnow()).total_seconds() / 3600
+                    logger.warning(f"Login attempt by banned user: {username}")
+                    flash(f"Your account is banned for {hours_left:.1f} more hours.")
+                    return redirect(url_for("login"))
+                else:
+                    # Unban user if ban expired
+                    mongo.db.users.update_one({"_id": user["_id"]}, {"$set": {"ban_until": None}})
+            
+            if not check_password_hash(user.get("password_hash", ""), password):
+                logger.warning(f"Login failed - invalid password: {username}")
+                flash("Invalid username or password.")
+                return redirect(url_for("login"))
+            
+            session["user_id"] = str(user["_id"])
+            session["username"] = user["username"]
+            session["role"] = user.get("role", "user")
+            
+            logger.info(f"User logged in successfully: {username}")
+            return redirect(url_for("my_files"))
+        except Exception as e:
+            logger.error(f"Login error: {str(e)}", exc_info=True)
+            flash(f"Login failed: {str(e)}")
             return redirect(url_for("login"))
-        
-        session["user_id"] = str(user["_id"])
-        session["username"] = user["username"]
-        session["role"] = user.get("role", "user")
-        
-        return redirect(url_for("my_files"))
     
     return render_template("login_mysql.html")
 
@@ -77,40 +121,54 @@ def login():
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
-        if not mongo:
-            flash("Database connection failed. Please try again later.")
-            return redirect(url_for("register"))
-        
-        username = request.form.get("username", "").strip()
-        password = request.form.get("password", "")
-        confirm_password = request.form.get("confirm_password", "")
-        
-        if not username or not password:
-            flash("Username and password are required.")
-            return redirect(url_for("register"))
-        
-        if password != confirm_password:
-            flash("Passwords do not match.")
-            return redirect(url_for("register"))
-        
-        if mongo.db.users.find_one({"username": username}):
-            flash("Username already exists.")
-            return redirect(url_for("register"))
-        
         try:
-            mongo.db.users.insert_one({
+            logger.debug(f"Register request received from {request.remote_addr}")
+            
+            if not mongo:
+                logger.error("MongoDB not connected during register attempt")
+                flash("Database connection failed. Please try again later.")
+                return redirect(url_for("register"))
+            
+            username = request.form.get("username", "").strip()
+            password = request.form.get("password", "")
+            confirm_password = request.form.get("confirm_password", "")
+            
+            logger.debug(f"Register attempt for username: {username}")
+            
+            if not username or not password:
+                logger.warning(f"Missing credentials for registration")
+                flash("Username and password are required.")
+                return redirect(url_for("register"))
+            
+            if password != confirm_password:
+                logger.warning(f"Password mismatch for user: {username}")
+                flash("Passwords do not match.")
+                return redirect(url_for("register"))
+            
+            # Check if user exists
+            existing_user = mongo.db.users.find_one({"username": username})
+            if existing_user:
+                logger.warning(f"Username already exists: {username}")
+                flash("Username already exists.")
+                return redirect(url_for("register"))
+            
+            # Create user
+            password_hash = generate_password_hash(password)
+            result = mongo.db.users.insert_one({
                 "username": username,
-                "password_hash": generate_password_hash(password),
+                "password_hash": password_hash,
                 "role": "user",
                 "created_at": datetime.utcnow(),
                 "ban_until": None
             })
             
+            logger.info(f"User registered successfully: {username} (ID: {result.inserted_id})")
             flash("Registration successful! Please log in.")
             return redirect(url_for("login"))
+            
         except Exception as e:
-            print(f"Registration error: {e}", file=sys.stderr)
-            flash("Registration failed. Please try again.")
+            logger.error(f"Registration error: {str(e)}", exc_info=True)
+            flash(f"Registration failed: {str(e)}")
             return redirect(url_for("register"))
     
     return render_template("register_mysql.html")
@@ -559,3 +617,15 @@ def search():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
+
+
+@app.errorhandler(500)
+def internal_error(error):
+    logger.error(f"500 Internal Server Error: {str(error)}", exc_info=True)
+    return {"error": "Internal Server Error", "details": str(error)}, 500
+
+
+@app.errorhandler(404)
+def not_found(error):
+    logger.warning(f"404 Not Found: {request.path}")
+    return {"error": "Not Found"}, 404

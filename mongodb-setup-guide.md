@@ -17,7 +17,7 @@ pip install -r requirements.txt
 
 The app expects MongoDB to be running on `localhost:27017` and uses the `docagram` database by default.
 
-If you need to change the connection string, edit `flask_mysql_app.py` and update:
+If you need to change the connection string, edit `app.py` and update:
 
 ```python
 app.config["MONGO_URI"] = "mongodb+srv://Vercel-Admin-atlas-amber-compass:hOVMjEKLebuU3C07@atlas-amber-compass.57nlolp.mongodb.net/?retryWrites=true&w=majority"
@@ -26,7 +26,7 @@ app.config["MONGO_URI"] = "mongodb+srv://Vercel-Admin-atlas-amber-compass:hOVMjE
 ## 4. Run the app
 
 ```bash
-python flask_mysql_app.py
+python app.py
 ```
 
 ## 5. Notes

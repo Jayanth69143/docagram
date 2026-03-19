@@ -3,6 +3,8 @@ import io
 import zipfile
 import secrets
 import hashlib
+import os
+import sys
 
 from flask import Flask, request, session, redirect, url_for, render_template, flash, send_file, abort
 from flask_pymongo import PyMongo
@@ -10,10 +12,17 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from PIL import Image
 
 app = Flask(__name__)
-app.config["SECRET_KEY"] = "your_secret_key"
-app.config["MONGO_URI"] = "mongodb+srv://Vercel-Admin-atlas-amber-compass:hOVMjEKLebuU3C07@atlas-amber-compass.57nlolp.mongodb.net/?retryWrites=true&w=majority"
+app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "your_secret_key")
+app.config["MONGO_URI"] = os.getenv("MONGO_URI", "mongodb+srv://Vercel-Admin-atlas-amber-compass:hOVMjEKLebuU3C07@atlas-amber-compass.57nlolp.mongodb.net/?retryWrites=true&w=majority")
 
-mongo = PyMongo(app)
+try:
+    mongo = PyMongo(app)
+    # Test connection
+    mongo.db.command('ping')
+    print("✅ MongoDB connected successfully")
+except Exception as e:
+    print(f"❌ MongoDB connection failed: {e}", file=sys.stderr)
+    mongo = None
 
 
 @app.route("/")
@@ -68,6 +77,10 @@ def login():
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
+        if not mongo:
+            flash("Database connection failed. Please try again later.")
+            return redirect(url_for("register"))
+        
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "")
         confirm_password = request.form.get("confirm_password", "")
@@ -84,16 +97,21 @@ def register():
             flash("Username already exists.")
             return redirect(url_for("register"))
         
-        mongo.db.users.insert_one({
-            "username": username,
-            "password_hash": generate_password_hash(password),
-            "role": "user",
-            "created_at": datetime.utcnow(),
-            "ban_until": None
-        })
-        
-        flash("Registration successful! Please log in.")
-        return redirect(url_for("login"))
+        try:
+            mongo.db.users.insert_one({
+                "username": username,
+                "password_hash": generate_password_hash(password),
+                "role": "user",
+                "created_at": datetime.utcnow(),
+                "ban_until": None
+            })
+            
+            flash("Registration successful! Please log in.")
+            return redirect(url_for("login"))
+        except Exception as e:
+            print(f"Registration error: {e}", file=sys.stderr)
+            flash("Registration failed. Please try again.")
+            return redirect(url_for("register"))
     
     return render_template("register_mysql.html")
 

@@ -2,3 +2,4 @@ Flask
 Flask-PyMongo
 pymongo
 Werkzeug
+Pillow

@@ -3,7 +3,11 @@
   "builds": [
     {
       "src": "app.py",
-      "use": "@vercel/python"
+      "use": "@vercel/python",
+      "config": {
+        "maxLambdaSize": "50mb",
+        "runtime": "python3.11"
+      }
     }
   ],
   "routes": [
@@ -11,9 +15,5 @@
       "src": "/(.*)",
       "dest": "app.py"
     }
-  ],
-  "env": {
-    "MONGO_URI": "@mongo_uri",
-    "SECRET_KEY": "@secret_key"
-  }
+  ]
 }

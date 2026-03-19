@@ -10,7 +10,14 @@ import logging
 from flask import Flask, request, session, redirect, url_for, render_template, flash, send_file, abort
 from flask_pymongo import PyMongo
 from werkzeug.security import check_password_hash, generate_password_hash
-from PIL import Image
+
+# Optional PIL import - for image previews
+try:
+    from PIL import Image
+    HAS_PIL = True
+except ImportError:
+    HAS_PIL = False
+    logger_placeholder = None
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -21,6 +28,8 @@ app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "your_secret_key")
 app.config["MONGO_URI"] = os.getenv("MONGO_URI", "mongodb+srv://Vercel-Admin-atlas-amber-compass:hOVMjEKLebuU3C07@atlas-amber-compass.57nlolp.mongodb.net/?retryWrites=true&w=majority")
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 app.config["SESSION_COOKIE_SECURE"] = True
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=30)
 
 mongo = None
 
@@ -196,13 +205,18 @@ def decompress_zip_file(data: bytes):
 
 def generate_low_quality_image(data: bytes):
     """Generate a low-quality preview image from uploaded data."""
+    if not HAS_PIL:
+        logger.debug("PIL not available, skipping image preview generation")
+        return b""
+    
     try:
         img = Image.open(io.BytesIO(data))
         img.thumbnail((200, 200))
         img_byte_arr = io.BytesIO()
         img.save(img_byte_arr, format='JPEG', quality=30)
         return img_byte_arr.getvalue()
-    except:
+    except Exception as e:
+        logger.warning(f"Failed to generate preview image: {e}")
         return b""
 
 

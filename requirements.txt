@@ -1,5 +1,4 @@
-Flask
-Flask-PyMongo
-pymongo
-Werkzeug
-Pillow
+Flask>=3.0.0
+Flask-PyMongo>=3.0.0
+pymongo>=4.0.0
+Werkzeug>=3.0.0

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Preview - {{ filename }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .preview-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            pointer-events: none; /* Disable right-click and drag */
+            user-select: none;
+        }
+        .filename {
+            margin-top: 20px;
+            font-size: 18px;
+            color: #333;
+        }
+        .note {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #666;
+        }
+    </style>
+    <script>
+        // Disable right-click context menu
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+        });
+
+        // Disable drag and drop
+        document.addEventListener('dragstart', function(e) {
+            e.preventDefault();
+        });
+
+        // Disable keyboard shortcuts for saving
+        document.addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) {
+                e.preventDefault();
+            }
+        });
+    </script>
+</head>
+<body>
+    <div class="preview-container">
+        <h1>File Preview</h1>
+        {% if image_data %}
+            <img src="data:image/jpeg;base64,{{ image_data }}" alt="Preview of {{ filename }}">
+        {% else %}
+            <p>This file is not an image or cannot be previewed.</p>
+        {% endif %}
+        <div class="filename">
+            <strong>Filename:</strong> {{ filename }}
+        </div>
+        <div class="note">
+            <p>This is a low-quality preview. To download the original file, please log in and use the download link.</p>
+        </div>
+    </div>
+</body>
+</html>

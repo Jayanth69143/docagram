@@ -1,4 +1,5 @@
 Flask
-Flask-SQLAlchemy
-PyMySQL
+Flask-PyMongo
+pymongo
 Werkzeug
+Pillow

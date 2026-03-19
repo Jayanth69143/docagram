@@ -25,7 +25,7 @@
                 <td>{{ "%.2f"|format(file.file_size / 1024 / 1024) }} MB</td>
                 <td>{{ file.description }}</td>
                 <td class="d-none d-md-table-cell">{{ file.download_count }}</td>
-                <td class="d-none d-md-table-cell">{{ file.upload_date.strftime('%Y-%m-%d') }}</td>
+                <td class="d-none d-md-table-cell">{{ file.upload_date.strftime('%d/%m/%Y %H:%M:%S') }}</td>
                 <td>
                     <a href="/preview/{{ file.id }}" class="btn btn-sm btn-info d-block d-sm-inline-block mb-1 mb-sm-0" target="_blank">Preview</a>
                     {% if session.get('user_id') %}

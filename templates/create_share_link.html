@@ -1,0 +1,27 @@
+{% extends "base_mysql.html" %}
+
+{% block title %}Create Share Link{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Create Share Link for {{ file.original_filename }}</h2>
+    <form method="POST">
+        <div class="mb-3">
+            <label for="password" class="form-label">Password (optional)</label>
+            <input type="password" class="form-control" id="password" name="password" placeholder="Leave empty for no password">
+        </div>
+        <div class="mb-3">
+            <label for="expiry_hours" class="form-label">Expiry Time (hours)</label>
+            <input type="number" class="form-control" id="expiry_hours" name="expiry_hours" value="24" min="0">
+            <div class="form-text">Set to 0 for no expiry</div>
+        </div>
+        <div class="mb-3 form-check">
+            <input type="checkbox" class="form-check-input" id="allow_download" name="allow_download">
+            <label class="form-check-label" for="allow_download">Allow direct download</label>
+            <div class="form-text">If unchecked, only preview will be available</div>
+        </div>
+        <button type="submit" class="btn btn-primary">Create Share Link</button>
+        <a href="{{ url_for('my_files') }}" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+{% endblock %}

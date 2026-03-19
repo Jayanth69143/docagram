@@ -1,5 +1,4 @@
 Flask
-Flask-SQLAlchemy
-psycopg2-binary
-SQLAlchemy
+Flask-PyMongo
+pymongo
 Werkzeug

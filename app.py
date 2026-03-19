@@ -13,6 +13,16 @@ app.config["MONGO_URI"] = "mongodb+srv://Vercel-Admin-atlas-amber-compass:hOVMjE
 mongo = PyMongo(app)
 
 
+@app.route("/")
+def index():
+    return render_template("index_mysql.html")
+
+
+@app.route("/favicon.ico")
+def favicon():
+    return "", 204  # Return empty response with 204 No Content
+
+
 def decompress_zip_file(data: bytes):
     """Return (file_bytes, filename) for the first file inside the ZIP."""
     with io.BytesIO(data) as bio:
